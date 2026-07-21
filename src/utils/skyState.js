@@ -6,17 +6,51 @@ function clamp(value, min = 0, max = 1) {
   return Math.min(max, Math.max(min, value));
 }
 
-function nearestHourlyIndex(hourly) {
+function localDateStringToMs(value) {
+  if (!value) return Number.NaN;
+
+  const [datePart, timePart = "00:00"] = value.split("T");
+  const [year, month, day] = datePart.split("-").map(Number);
+  const [hour, minute = 0, second = 0] = timePart.split(":").map(Number);
+  return Date.UTC(year, month - 1, day, hour, minute, second);
+}
+
+function nowInTimezoneMs(timezone) {
+  if (!timezone) return Date.now();
+
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+
+  return Date.UTC(
+    Number(values.year),
+    Number(values.month) - 1,
+    Number(values.day),
+    Number(values.hour),
+    Number(values.minute),
+    Number(values.second),
+  );
+}
+
+function nearestHourlyIndex(hourly, timezone) {
   if (!hourly?.time?.length) {
     return -1;
   }
 
-  const now = Date.now();
+  const now = nowInTimezoneMs(timezone);
   let bestIndex = 0;
-  let bestDistance = Math.abs(new Date(hourly.time[0]).getTime() - now);
+  let bestDistance = Math.abs(localDateStringToMs(hourly.time[0]) - now);
 
   for (let index = 1; index < hourly.time.length; index += 1) {
-    const distance = Math.abs(new Date(hourly.time[index]).getTime() - now);
+    const distance = Math.abs(localDateStringToMs(hourly.time[index]) - now);
     if (distance < bestDistance) {
       bestDistance = distance;
       bestIndex = index;
@@ -34,14 +68,17 @@ function firstDailyValue(daily, field) {
   return daily?.[field]?.[0] ?? null;
 }
 
-function daylightProgress(now, sunrise, sunset) {
+function isThunderstormCode(weatherCode) {
+  return [95, 96, 99].includes(weatherCode);
+}
+
+function daylightProgress(nowMs, sunrise, sunset) {
   if (!sunrise || !sunset) {
     return null;
   }
 
-  const sunriseMs = new Date(sunrise).getTime();
-  const sunsetMs = new Date(sunset).getTime();
-  const nowMs = now.getTime();
+  const sunriseMs = localDateStringToMs(sunrise);
+  const sunsetMs = localDateStringToMs(sunset);
 
   if (Number.isNaN(sunriseMs) || Number.isNaN(sunsetMs) || sunsetMs <= sunriseMs) {
     return null;
@@ -62,8 +99,8 @@ export function createSkyState(forecast, location) {
   const current = forecast.current || {};
   const hourly = forecast.hourly || {};
   const daily = forecast.daily || {};
-  const hourlyIndex = nearestHourlyIndex(hourly);
-  const now = new Date();
+  const hourlyIndex = nearestHourlyIndex(hourly, location.timezone);
+  const nowMs = nowInTimezoneMs(location.timezone);
   const sunrise = firstDailyValue(daily, "sunrise");
   const sunset = firstDailyValue(daily, "sunset");
   const weatherCode = valueWithHourlyFallback(current, hourly, "weather_code", hourlyIndex);
@@ -83,7 +120,7 @@ export function createSkyState(forecast, location) {
       sunrise,
       sunset,
       daylightDuration: firstDailyValue(daily, "daylight_duration"),
-      daylightProgress: daylightProgress(now, sunrise, sunset),
+      daylightProgress: daylightProgress(nowMs, sunrise, sunset),
       shortwaveRadiation: hourlyValue(hourly, "shortwave_radiation", hourlyIndex) ?? null,
       directRadiation: hourlyValue(hourly, "direct_radiation", hourlyIndex) ?? null,
       diffuseRadiation: hourlyValue(hourly, "diffuse_radiation", hourlyIndex) ?? null,
@@ -115,7 +152,7 @@ export function createSkyState(forecast, location) {
     },
     storm: {
       weatherCode,
-      isThunderstorm: [95, 96, 99].includes(weatherCode),
+      isThunderstorm: isThunderstormCode(weatherCode),
       cape: hourlyValue(hourly, "cape", hourlyIndex) ?? null,
     },
   };
@@ -138,8 +175,7 @@ function percentValue(value) {
 function rainIntensity(precipitation) {
   const rain = precipitation?.rain ?? 0;
   const showers = precipitation?.showers ?? 0;
-  const snowfall = precipitation?.snowfall ?? 0;
-  return clamp((rain + showers + snowfall * 0.7) / 12, 0, 1);
+  return clamp((rain + showers) / 12, 0, 1);
 }
 
 function snowfallIntensity(precipitation) {
@@ -338,6 +374,8 @@ export function applySkyStateOverrides(skyState, overrides) {
     return null;
   }
 
+  const weatherCode = overrideValue(skyState.storm.weatherCode, overrides.weatherCode);
+
   return {
     ...skyState,
     labActive: Object.values(overrides).some((value) => value !== ""),
@@ -371,7 +409,8 @@ export function applySkyStateOverrides(skyState, overrides) {
     },
     storm: {
       ...skyState.storm,
-      weatherCode: overrideValue(skyState.storm.weatherCode, overrides.weatherCode),
+      weatherCode,
+      isThunderstorm: isThunderstormCode(weatherCode),
       cape: overrideValue(skyState.storm.cape, overrides.cape),
     },
   };
