@@ -42,6 +42,8 @@ PORT=4001
 GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 ```
 
+`JWT_SECRET` is required. The backend will stop on startup if it is missing.
+
 4. Start the backend:
 
 ```bash

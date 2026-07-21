@@ -1,14 +1,21 @@
 # Home Sky
 
-Home Sky is a personal project about helping people living away from home feel connected to the current sky and atmosphere of their hometown. The product will be built brick by brick, not all at once.
+Home Sky is a personal project about helping people living away from home feel connected to the current sky and atmosphere of their hometown. The product is being built brick by brick, not all at once.
 
-## Current Phase
+## Status
 
-Phase 0: Data Backbone
+Phase 0 is complete.
 
-The goal of Phase 0 is to prove that the app can select a Home location, persist it locally, fetch weather data for it, and display the core information clearly.
+Deployment is intentionally deferred. The app now has a working local foundation, but we should improve usefulness, visual identity, and production readiness before publishing it.
 
-Status: Implemented locally.
+## Branch Workflow
+
+- `main` contains the completed Phase 0 baseline.
+- `dev` is synchronized with `main` and is the base branch for upcoming work.
+- Phase 1 work should begin from `dev`.
+- Use feature branches from `dev` where possible, for example `feature/phase-1-sky-view`.
+- Merge completed feature branches back into `dev`.
+- Merge `dev` into `main` only when a stable milestone is ready.
 
 ## Technology
 
@@ -19,16 +26,34 @@ Status: Implemented locally.
 - Open-Meteo APIs
 - Node.js
 - Express
-- MongoDB
+- MongoDB Atlas
 - Mongoose
 - JWT authentication
-- Google Identity Services support
+- Google Identity Services
 
-## Explicit Non-Goals
+## Phase 0 Completed Scope
 
-Earlier Phase 0 excluded backend and authentication. The project has now moved past local-only Phase 0 and includes a small backend/auth foundation.
+- Email signup and login.
+- Google login option.
+- Logout.
+- MongoDB-backed user accounts.
+- Saved locations per user.
+- Default location per user.
+- Active location persistence.
+- Collapsible saved-location sidebar.
+- Main add-location screen.
+- Focused weather screen for selected saved locations.
+- Location search with Open-Meteo Geocoding.
+- Current weather with moment-level summary.
+- Hourly forecast.
+- Seven-day forecast.
+- Live local time using the selected location timezone.
+- Loading, empty, and API-error states.
+- Simple dummy background.
 
-Phase 0 still will not include:
+## Phase 0 Non-Goals
+
+These remain out of scope for Phase 0:
 
 - TypeScript
 - Interactive map
@@ -37,163 +62,79 @@ Phase 0 still will not include:
 - Sky rendering
 - Moon animation
 - Projector support
+- Production deployment
 
-## Phase 0 User Flow
+## Local Development
 
-1. A first-time user sees "Where is home?"
-2. The user searches for a town or city using Open-Meteo Geocoding.
-3. Search results show place, state, and country.
-4. The selected place is previewed first; saving it is an explicit user choice.
-5. The app shows the selected location's continuously updating local time.
-6. The app fetches current weather, hourly forecast, and seven-day forecast.
-7. Refreshing the website preserves saved locations and the default location through the backend after login.
-8. The user can add multiple locations and navigate them from the sidebar.
-9. The app includes loading, empty, and API-error states.
-10. The app includes required Open-Meteo attribution.
+Frontend runs at:
 
-## Phase 0 Interface
+`http://127.0.0.1:5173`
 
-The website should be laptop-first and responsive, with a minimal, peaceful layout and a simple dummy background.
+Backend runs at:
 
-The interface should show:
+`http://127.0.0.1:4001`
 
-- Current Home location
-- Live local time for that location
-- Current temperature and condition
-- Feels-like temperature
-- Humidity
-- Cloud cover
-- Rain or precipitation
-- Wind
+Required `.env` values:
+
+- `MONGODB_URI`
+- `JWT_SECRET`
+- `PORT`
+- `GOOGLE_CLIENT_ID`
+
+Do not commit `.env`. Credentials and secrets must stay local or in deployment secret storage.
+
+The backend now stops on startup if `JWT_SECRET` is missing. It should not silently use an unsafe fallback secret.
+
+## Data
+
+MongoDB stores:
+
+- User account records.
+- Password hashes or Google auth identity links.
+- Saved locations.
+- Default location.
+- Active location.
+
+Open-Meteo weather data is fetched live and is not stored.
+
+Temporary smoke-test accounts using `@homesky.local` were removed from MongoDB Atlas during Phase 0 cleanup.
+
+## Verification Checklist
+
+Before opening Phase 1, verify:
+
+- Email signup/login
+- Google login
+- Logout
+- Location search
+- Save multiple locations
+- Default location
+- Refresh persistence
+- Current weather
 - Hourly forecast
 - Seven-day forecast
-- Last updated time
-- Sidebar with saved locations
-- Main add-location screen
-- Focused weather screen for a selected saved location
-- Default location choice
-- Saved locations with custom labels such as Home, School, or Office
-- Sign up and login before entering the app
-- Google login option on the auth screen
+- Local time
+- Loading and error states
 
-## APIs
+Final local checks:
 
-### Geocoding
+```bash
+npm run build
+node --check server/index.js
+git status
+```
 
-Use Open-Meteo Geocoding:
+## Deferred Before Deployment
 
-`https://geocoding-api.open-meteo.com/v1/search`
+These are intentionally deferred until the app is closer to a presentable production release:
 
-Expected usage:
+- Rate limiting
+- Helmet/security headers
+- Configurable production URLs and CORS
+- Strong server-side validation
+- Authentication-cookie improvements
+- CI/CD and hosting
 
-- Search by user-entered place name.
-- Read result fields such as name, admin region, country, latitude, longitude, and timezone.
-- Save the selected result as a named location.
-- Some places may appear by official/local names, so search includes more results and a few common aliases such as Bangalore/Bengaluru and Bailhongal/Bail Hongal.
+## Phase 1 Direction
 
-### Forecast
-
-Use Open-Meteo Forecast:
-
-`https://api.open-meteo.com/v1/forecast`
-
-Expected data:
-
-- Current temperature
-- Apparent or feels-like temperature
-- Weather condition code
-- Humidity
-- Cloud cover
-- Precipitation or rain
-- Wind
-- Hourly forecast
-- Daily seven-day forecast
-- Selected location timezone
-
-## Proposed Implementation Plan
-
-1. Scaffold the Vite React app
-   - Create the Vite React JavaScript project structure inside this folder only.
-   - Add minimal package scripts for development and build.
-
-2. Establish app structure
-   - `src/main.jsx`
-   - `src/App.jsx`
-   - `src/api/openMeteo.js`
-   - `src/hooks/useLocalTime.js`
-   - `src/utils/storage.js`
-   - `src/utils/weatherCodes.js`
-   - `src/index.css`
-
-3. Implement Home selection
-   - Build the first-time "Where is home?" state.
-   - Add a search input connected to Open-Meteo Geocoding.
-   - Show selectable results with place, state, and country.
-- Save selected locations to localStorage.
-- Restore saved locations and the default location on page refresh.
-- Show saved locations in the sidebar.
-
-4. Implement weather fetching
-   - Fetch current, hourly, and daily forecast data from Open-Meteo.
-   - Request data using the selected latitude, longitude, and timezone.
-   - Normalize API responses into simple objects for the UI.
-   - Track loading, error, empty, and last-updated states.
-
-5. Implement live local time
-   - Use the selected Home timezone.
-   - Update continuously while the app is open.
-   - Keep the time display independent from weather refresh timing.
-
-6. Build the Phase 0 UI
-   - Use a simple dummy background.
-   - Create a calm laptop-first layout.
-   - Show current weather details, hourly forecast, and seven-day forecast.
-- Keep source metadata separate from the main weather content.
-
-7. Verify Phase 0
-   - Run the dev server.
-   - Test first-time flow, search, selection, refresh persistence, Change Home, weather loading, API errors, and responsive layout.
-   - Run a production build.
-
-## Approval Gate
-
-The Phase 0 plan was reviewed and approved. Implementation has started and the local app now includes the Phase 0 data backbone.
-
-## Implementation Notes
-
-- The Vite React JavaScript app has been scaffolded in this folder.
-- A Node/Express backend has been added in `server/index.js`.
-- MongoDB stores user accounts, saved locations, default location, and active location.
-- JWT auth gates the app before showing the Home Sky screen.
-- Google login backend endpoints and frontend button slot have been added.
-- Google login is configured locally with `GOOGLE_CLIENT_ID` in `.env`.
-- Backend API runs on `http://127.0.0.1:4001`.
-- Local `.env` now points `MONGODB_URI` to MongoDB Atlas. The actual secret is intentionally not documented here.
-- Frontend dev server runs on `http://127.0.0.1:5173`.
-- Home location search uses Open-Meteo Geocoding.
-- A selected location can be previewed before saving.
-- Multiple saved locations are stored in MongoDB and restored after login.
-- Saved locations can use custom labels such as Home, School, or Office.
-- Users can mark a saved location as the default location.
-- The layout now uses a sidebar for saved locations and a separate main add-location flow.
-- Live local time uses the active location timezone.
-- Forecast data comes from Open-Meteo Forecast.
-- The interface includes live current weather for the active moment, hourly forecast, seven-day forecast, loading/error/empty states, city switching, saved locations, and last updated time.
-- Styling uses plain CSS with a simple dummy background and responsive layouts for laptop, tablet, and mobile screen sizes.
-
-## Verification
-
-- `npm install` completed successfully.
-- `npm run build` completed successfully.
-- `node --check server/index.js` completed successfully.
-- Backend health check returned HTTP 200 at `http://127.0.0.1:4001/api/health`.
-- Backend debug check confirmed Atlas database `home-sky` on host `*.gamqbs4.mongodb.net`.
-- A throwaway signup request successfully created a MongoDB-backed user.
-- A throwaway signup request successfully created a MongoDB Atlas-backed user.
-- Atlas debug user count is now `1`, so Data Explorer should show `home-sky > users` after refresh.
-- Google auth config returned enabled with the configured local OAuth Client ID.
-- Local Vite dev server responded with HTTP 200 at `http://127.0.0.1:5173/`.
-
-## Known Local Notes
-
-- Git status inspection is currently blocked by Git safe-directory ownership protection for the parent `C:/Users/gaddi/OneDrive/Desktop/Projects` repository.
+Phase 1 should make Home Sky feel like Home Sky, not just a standard weather dashboard. The next phase should focus on usefulness, emotional clarity, visual identity, and a calmer weather experience before deployment.

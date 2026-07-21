@@ -11,9 +11,14 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 4001;
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/home-sky";
-const JWT_SECRET = process.env.JWT_SECRET || "home-sky-dev-secret-change-me";
+const JWT_SECRET = process.env.JWT_SECRET;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
+
+if (!JWT_SECRET) {
+  console.error("JWT_SECRET is required. Set it in .env before starting the backend.");
+  process.exit(1);
+}
 
 app.use(cors({ origin: ["http://127.0.0.1:5173", "http://localhost:5173"] }));
 app.use(express.json());
