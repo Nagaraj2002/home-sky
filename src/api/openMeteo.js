@@ -50,17 +50,72 @@ export async function searchLocations(query) {
 }
 
 export async function getForecast(home) {
+  const currentFields = [
+    "temperature_2m",
+    "apparent_temperature",
+    "relative_humidity_2m",
+    "dew_point_2m",
+    "is_day",
+    "precipitation",
+    "rain",
+    "showers",
+    "snowfall",
+    "cloud_cover",
+    "cloud_cover_low",
+    "cloud_cover_mid",
+    "cloud_cover_high",
+    "pressure_msl",
+    "surface_pressure",
+    "wind_speed_10m",
+    "wind_direction_10m",
+    "wind_gusts_10m",
+    "weather_code",
+  ].join(",");
+  const hourlyFields = [
+    "temperature_2m",
+    "apparent_temperature",
+    "relative_humidity_2m",
+    "dew_point_2m",
+    "visibility",
+    "precipitation_probability",
+    "precipitation",
+    "rain",
+    "showers",
+    "snowfall",
+    "cloud_cover",
+    "cloud_cover_low",
+    "cloud_cover_mid",
+    "cloud_cover_high",
+    "pressure_msl",
+    "surface_pressure",
+    "wind_speed_10m",
+    "wind_direction_10m",
+    "wind_gusts_10m",
+    "weather_code",
+    "shortwave_radiation",
+    "direct_radiation",
+    "diffuse_radiation",
+    "cape",
+  ].join(",");
+  const dailyFields = [
+    "weather_code",
+    "temperature_2m_max",
+    "temperature_2m_min",
+    "precipitation_sum",
+    "rain_sum",
+    "wind_speed_10m_max",
+    "sunrise",
+    "sunset",
+    "daylight_duration",
+  ].join(",");
   const params = new URLSearchParams({
     latitude: String(home.latitude),
     longitude: String(home.longitude),
     timezone: home.timezone,
     forecast_days: "7",
-    current:
-      "temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,rain,cloud_cover,wind_speed_10m,weather_code",
-    hourly:
-      "temperature_2m,apparent_temperature,relative_humidity_2m,precipitation_probability,precipitation,rain,cloud_cover,wind_speed_10m,weather_code",
-    daily:
-      "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,rain_sum,wind_speed_10m_max",
+    current: currentFields,
+    hourly: hourlyFields,
+    daily: dailyFields,
   });
 
   const response = await fetch(`${FORECAST_URL}?${params}`);
